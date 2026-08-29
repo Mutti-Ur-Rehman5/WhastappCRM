@@ -1,0 +1,10 @@
+# Never bake secrets or dev tooling into the image.
+node_modules
+.git
+.env
+.env.*
+credentials
+tests
+logs
+coverage
+*.log

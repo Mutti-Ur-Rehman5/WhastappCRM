@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./credentials:/app/credentials:ro
+    ports:
+      - "3000:3000"
+
+  worker:
+    build: .
+    command: ["npm", "run", "start:worker"]
+    env_file:
+      - .env
+    volumes:
+      - ./credentials:/app/credentials:ro
+    restart: unless-stopped
