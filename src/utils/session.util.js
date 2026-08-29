@@ -20,11 +20,17 @@ export function verifyAdminSession(token) {
   return jwt.verify(token, env.jwtSecret);
 }
 
-/** Cookie options for the admin session (httpOnly + sameSite, Secure in prod). */
+/**
+ * Cookie options for the admin session (httpOnly + Secure).
+ * SameSite: the admin dashboard can be hosted separately (e.g. Vercel) while
+ * this API stays on another origin (Render), so cross-site requests must carry
+ * the cookie. `none` is only legal over HTTPS, so prod (HTTPS) uses `none`
+ * with the mandatory `Secure`; localhost/dev stays `lax` (same-origin proxy).
+ */
 export function adminCookieOptions() {
   return {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: env.isProduction ? 'none' : 'lax',
     secure: env.isProduction,
     maxAge: env.adminSessionTtlSeconds * 1000,
     path: '/',
