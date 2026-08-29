@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Admin dashboard (Phase 11). `base: '/admin/'` matches where the Express app
-// serves the built app, so asset URLs work in production. In dev, the Vite
-// server proxies /api to the local API on :3000.
+// Admin dashboard (Phase 11). Relative base ('./') keeps the built app
+// portable: Express serves it at /admin, Vercel serves the same build at /.
+// In dev, the Vite server proxies /api to the local API on :3000.
 export default defineConfig({
-  base: '/admin/',
+  base: './',
   plugins: [react()],
   server: {
     port: 5173,

@@ -10,10 +10,15 @@ export class ApiError extends Error {
   }
 }
 
+// VITE_API_BASE lets a separately-hosted dashboard (e.g. Vercel) point at the
+// Express/Render API. Empty by default = same-origin, matching Node/Express
+// deployments.
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+
 export async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
-    credentials: 'same-origin',
+    credentials: 'include',
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });

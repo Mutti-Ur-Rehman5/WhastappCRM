@@ -43,6 +43,26 @@ app.use(
   }),
 );
 
+// The admin dashboard can be hosted separately (e.g. Vercel) while the API
+// stays on Render/Express. Opt-in CORS: only when CORS_ALLOWED_ORIGINS is set,
+// echo back a matching Origin with credentials and answer preflights. Off by
+// default — same-origin behaviour (and webhook signature checks) is unchanged.
+const corsAllowedOrigins = (env.corsAllowedOrigins || '').split(',').map((s) => s.trim()).filter(Boolean);
+if (corsAllowedOrigins.length > 0) {
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && corsAllowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, x-admin-api-key, Authorization');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    return next();
+  });
+}
+
 app.use(router);
 
 // Phase 11: serve the built React admin dashboard at /admin (same Express
@@ -51,7 +71,9 @@ app.use(router);
 const adminDist = fileURLToPath(new URL('../admin/dist', import.meta.url));
 if (existsSync(path.join(adminDist, 'index.html'))) {
   app.use('/admin', express.static(adminDist));
-  app.get('/admin', (req, res) => res.sendFile(path.join(adminDist, 'index.html')));
+  // Relative asset base (vite base './') resolves correctly from /admin/
+  // (with trailing slash). Redirect the bare /admin there so assets load.
+  app.get('/admin', (req, res) => res.redirect(301, '/admin/'));
   app.get('/admin/*', (req, res) => res.sendFile(path.join(adminDist, 'index.html')));
 } else {
   logger.warn('Admin dashboard build not found — /admin disabled (build admin/ first)');
