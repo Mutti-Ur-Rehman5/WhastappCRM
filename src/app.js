@@ -19,6 +19,35 @@ app.disable('x-powered-by');
 // would be permissive (any client could spoof the IP) and express-rate-limit
 // refuses it with ERR_ERL_PERMISSIVE_TRUST_PROXY.
 app.set('trust proxy', 1);
+
+// The admin dashboard is hosted separately (Vercel) while the API stays on
+// Render/Express, so cross-origin requests must be allowed. Allowed origins
+// come from FRONTEND_URL (single frontend origin) and/or CORS_ALLOWED_ORIGINS
+// (comma-separated extra origins). On a matching Origin we echo it back with
+// credentials and answer preflights; anything else behaves as same-origin
+// (and webhook signature checks are unchanged). Registered at the very top so
+// EVERY response (even body-parse errors) carries the CORS headers.
+const allowedOrigins = new Set(
+  [
+    env.frontendUrl,
+    ...(env.corsAllowedOrigins || '').split(',').map((s) => s.trim()).filter(Boolean),
+  ].filter(Boolean),
+);
+if (allowedOrigins.size > 0) {
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, x-admin-api-key, Authorization');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    return next();
+  });
+}
+
 app.use(helmet());
 // `verify` captures the exact raw bytes for webhook HMAC verification —
 // re-serializing the parsed JSON would break the signature check.
@@ -42,26 +71,6 @@ app.use(
     stream: { write: (message) => logger.http(message.trim()) },
   }),
 );
-
-// The admin dashboard can be hosted separately (e.g. Vercel) while the API
-// stays on Render/Express. Opt-in CORS: only when CORS_ALLOWED_ORIGINS is set,
-// echo back a matching Origin with credentials and answer preflights. Off by
-// default — same-origin behaviour (and webhook signature checks) is unchanged.
-const corsAllowedOrigins = (env.corsAllowedOrigins || '').split(',').map((s) => s.trim()).filter(Boolean);
-if (corsAllowedOrigins.length > 0) {
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin && corsAllowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Vary', 'Origin');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, x-admin-api-key, Authorization');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    }
-    if (req.method === 'OPTIONS') return res.sendStatus(204);
-    return next();
-  });
-}
 
 app.use(router);
 

@@ -150,6 +150,7 @@ export const env = Object.freeze({
   webhookRateLimit: Number(process.env.WEBHOOK_RATE_LIMIT || 300),
   webhookRateLimitWindowMs: Number(process.env.WEBHOOK_RATE_LIMIT_WINDOW_MS || 60_000),
   doctorEmail: process.env.DOCTOR_EMAIL || '',
+  frontendUrl: process.env.FRONTEND_URL || '',
   corsAllowedOrigins: process.env.CORS_ALLOWED_ORIGINS || '',
 
 
